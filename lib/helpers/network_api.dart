@@ -1,3 +1,3 @@
 class NetworkAPI {
-  static const String baseURLDudee = 'https://lindsay-beaver-tvs-sporting.trycloudflare.com/api/v1';
+  static const String baseURLDudee = 'https://playlist-prove-stockholm-mercury.trycloudflare.com/api/v1';
 }
