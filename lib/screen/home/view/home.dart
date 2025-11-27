@@ -83,28 +83,11 @@ class _HomePageState extends State<HomePage> {
                 Obx(() {
                   final profileUrl =
                       userController.userProfile.value?.data?.profileUrl;
-                  // แปลง SVG URL เป็น PNG URL สำหรับ dicebear
-                  String? processedUrl = profileUrl;
-                  if (profileUrl != null &&
-                      profileUrl.contains('dicebear.com')) {
-                    // แทนที่ svg ด้วย png เพื่อให้ Flutter รองรับ
-                    processedUrl = profileUrl.replaceAll('/svg?', '/png?');
-                  }
-
-                  final isValidUrl =
-                      processedUrl != null &&
-                      processedUrl.isNotEmpty &&
-                      (processedUrl.startsWith('http://') ||
-                          processedUrl.startsWith('https://'));
-
-                  // ใช้ตัวแปร local เพื่อหลีกเลี่ยง null check warning
-                  final String? finalImageUrl =
-                      isValidUrl ? processedUrl : null;
                   return InkWell(
                     onTap: () {
                       GoRouter.of(context).pushNamed(AppRoute.profile);
                     },
-                    child: ProfileCircle(imageUrl: finalImageUrl),
+                    child: ProfileCircle(imageUrl: profileUrl),
                   );
                 }),
                 const SizedBox(width: 10),

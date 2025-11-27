@@ -3,32 +3,49 @@ import 'package:flutter/material.dart';
 
 class ProfileCircle extends StatelessWidget {
   final String? imageUrl;
-  const ProfileCircle({super.key, this.imageUrl});
+  final double size;
+  const ProfileCircle({
+    super.key,
+    this.imageUrl,
+    this.size = 60,
+  });
+
+  /// แปลง URL ให้รองรับ dicebear (SVG -> PNG)
+  String? _processImageUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (url.contains('dicebear.com')) {
+      return url.replaceAll('/svg?', '/png?');
+    }
+    return url;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return imageUrl != null
-        ? ClipOval(
-          child: CachedNetworkImage(
-            imageUrl: imageUrl!,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-            placeholder:
-                (context, url) => const CircleAvatar(
-                  radius: 30.0,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-            errorWidget:
-                (context, url, error) => const CircleAvatar(
-                  radius: 30.0,
-                  child: Icon(Icons.person, size: 30, color: Colors.grey),
-                ),
-          ),
-        )
-        : const CircleAvatar(
-          radius: 30.0,
-          child: Icon(Icons.person, size: 30, color: Colors.grey),
-        );
+    final processedUrl = _processImageUrl(imageUrl);
+    final placeholder = CircleAvatar(
+      radius: size / 2,
+      child: const Icon(Icons.person, size: 30, color: Colors.grey),
+    );
+
+    if (processedUrl == null ||
+        processedUrl.isEmpty ||
+        !(processedUrl.startsWith('http://') ||
+            processedUrl.startsWith('https://'))) {
+      return placeholder;
+    }
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: processedUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => CircleAvatar(
+          radius: size / 2,
+          child: const CircularProgressIndicator(strokeWidth: 2),
+        ),
+        errorWidget: (context, url, error) => placeholder,
+      ),
+    );
   }
 }
