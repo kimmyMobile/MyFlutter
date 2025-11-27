@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_test1/config/routes/app_route.dart';
 import 'package:flutter_app_test1/controller/conversation_controller.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_app_test1/controller/user_controller.dart';
 import 'package:flutter_app_test1/screen/home/widgets/list_chat_widget.dart';
 import 'package:flutter_app_test1/screen/home/widgets/list_friend_widget.dart';
 import 'package:flutter_app_test1/screen/widgets/custom_drawerbar.dart';
+import 'package:flutter_app_test1/screen/widgets/profile_circle.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
@@ -113,40 +113,7 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       GoRouter.of(context).pushNamed(AppRoute.profile);
                     },
-                    child:
-                        finalImageUrl != null
-                            ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: finalImageUrl,
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                placeholder:
-                                    (context, url) => const CircleAvatar(
-                                      radius: 30.0,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                errorWidget:
-                                    (context, url, error) => const CircleAvatar(
-                                      radius: 30.0,
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 30,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                              ),
-                            )
-                            : const CircleAvatar(
-                              radius: 30.0,
-                              child: Icon(
-                                Icons.person,
-                                size: 30,
-                                color: Colors.grey,
-                              ),
-                            ),
+                    child: ProfileCircle(imageUrl: finalImageUrl),
                   );
                 }),
                 const SizedBox(width: 10),
