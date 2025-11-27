@@ -20,7 +20,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
-  Map<String, dynamic> _currentUserInfo = {};
   final ConversationController conversationController = Get.put(
     ConversationController(),
   );
@@ -32,12 +31,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     userController.fetchUserProfile();
-    _loadCurrentUserInfo();
     // เชื่อมต่อ Socket เมื่อเข้าหน้า Home
     _connectSocket();
   }
 
-  /// เชื่อมต่อ Socket (async)
+  //เชื่อมต่อ Socket (async)
   Future<void> _connectSocket() async {
     try {
       await skController.connectSocket();
@@ -50,11 +48,6 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadCurrentUserInfo() async {
-    // await conversationController.fetchConversations();
-    // await friendController.fetchFriends();
   }
 
   @override
@@ -90,7 +83,6 @@ class _HomePageState extends State<HomePage> {
                 Obx(() {
                   final profileUrl =
                       userController.userProfile.value?.data?.profileUrl;
-
                   // แปลง SVG URL เป็น PNG URL สำหรับ dicebear
                   String? processedUrl = profileUrl;
                   if (profileUrl != null &&
@@ -108,7 +100,6 @@ class _HomePageState extends State<HomePage> {
                   // ใช้ตัวแปร local เพื่อหลีกเลี่ยง null check warning
                   final String? finalImageUrl =
                       isValidUrl ? processedUrl : null;
-
                   return InkWell(
                     onTap: () {
                       GoRouter.of(context).pushNamed(AppRoute.profile);
@@ -192,7 +183,7 @@ class _HomePageState extends State<HomePage> {
                         final friend = friendController.friends[index];
                         return ListFriendWidget(
                           friend: friend,
-                          currentUserId: _currentUserInfo['userId'],
+                          currentUserId: userController.userProfile.value?.data?.userId,
                         );
                       },
                     ),
@@ -213,7 +204,7 @@ class _HomePageState extends State<HomePage> {
                         final conversation = controller.conversations[index];
                         return ListChatWidget(
                           conversation: conversation,
-                          currentUserId: _currentUserInfo['userId'],
+                          currentUserId: userController.userProfile.value?.data?.userId,
                         );
                       },
                     ),
