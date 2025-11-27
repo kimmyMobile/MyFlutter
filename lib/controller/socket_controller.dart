@@ -5,12 +5,13 @@ import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import '../service/tokens/token_interceptor.dart';
 
-enum SocketSatus { connecting, connected, error, disconnect }
+enum SocketSatus { connecting, connected, error, disconnect, authError }
 
 class SocketController extends GetxController {
   Rx<SocketSatus> socketStatus = SocketSatus.disconnect.obs;
   socket_io.Socket? socket;
   String? _currentToken;
+  bool _hasAuthError = false;
 
   /// เชื่อมต่อ Socket (เหมือน getSocket ใน TypeScript)
   /// ถ้า socket connected อยู่แล้วและ token ไม่เปลี่ยน จะ return socket เดิม
@@ -18,6 +19,18 @@ class SocketController extends GetxController {
   Future<socket_io.Socket> connectSocket() async {
     // ดึง token ปัจจุบัน
     final accessToken = await LocalStorageService.getToken(Token.accessToken);
+    if (accessToken == null || accessToken.isEmpty) {
+      print('❌ [Socket] Access token missing, skip connection');
+      socketStatus.value = SocketSatus.authError;
+      return Future.error('Access token is required for socket connection.');
+    }
+
+    if (_hasAuthError) {
+      print(
+        '⚠️ [Socket] Auth error detected, waiting for new token before reconnect.',
+      );
+      return Future.error('Socket auth error, reconnect after token refresh.');
+    }
 
     // เช็คว่า socket มีอยู่แล้ว, connected, และ token ไม่เปลี่ยน
     if (socket != null && socket!.connected && _currentToken == accessToken) {
@@ -60,7 +73,9 @@ class SocketController extends GetxController {
 
     // เพิ่ม auth token และ headers ถ้ามี
     if (accessToken != null && accessToken.isNotEmpty) {
-      optionBuilder.setExtraHeaders({'Authorization': 'Bearer $accessToken'});
+      optionBuilder
+        ..setAuth({'token': 'Bearer $accessToken'})
+        ..setExtraHeaders({'Authorization': 'Bearer $accessToken'});
       // Note: socket_io_client Flutter อาจไม่รองรับ auth object โดยตรง
       // แต่สามารถส่งผ่าน extraHeaders ได้
     }
@@ -75,11 +90,16 @@ class SocketController extends GetxController {
     // Connection successful
     socket!.onConnect((_) {
       socketStatus.value = SocketSatus.connected;
+      _hasAuthError = false;
       print('✅ [Socket] Connected, ID: ${socket?.id}');
     });
 
     // Connection error (ตั้งก่อน connect)
     socket!.on('connect_error', (data) async {
+      if (_isUnauthorizedError(data)) {
+        _handleUnauthorizedError(data);
+        return;
+      }
       socketStatus.value = SocketSatus.error;
       final memberId = (await LocalStorageService().getUserInfo())['userId'];
       if (memberId != null) {
@@ -103,6 +123,10 @@ class SocketController extends GetxController {
 
     // General error
     socket!.onError((error) {
+      if (_isUnauthorizedError(error)) {
+        _handleUnauthorizedError(error);
+        return;
+      }
       socketStatus.value = SocketSatus.error;
       print('❌ [Socket] Error: $error');
     });
@@ -131,5 +155,36 @@ class SocketController extends GetxController {
   void onClose() {
     socket?.dispose();
     super.onClose();
+  }
+
+  /// ตรวจสอบว่า error จาก server เป็น 401 หรือ unauthorized หรือไม่
+  bool _isUnauthorizedError(dynamic data) {
+    if (data == null) return false;
+    if (data is Map) {
+      final status = data['status'] ?? data['code'] ?? data['statusCode'];
+      final message = '${data['message'] ?? data['error']}'.toLowerCase();
+      if ('$status' == '401' || message.contains('unauthorized')) {
+        return true;
+      }
+    }
+    final str = data.toString().toLowerCase();
+    return str.contains('401') || str.contains('unauthorized');
+  }
+
+  /// จัดการเมื่อ token ไม่ถูกต้อง -> หยุด reconnect จนกว่าจะได้รับ token ใหม่
+  void _handleUnauthorizedError(dynamic error) {
+    print('❌ [Socket] Unauthorized error, stop reconnect: $error');
+    _hasAuthError = true;
+    socketStatus.value = SocketSatus.authError;
+    socket?.disconnect();
+    socket?.dispose();
+    socket = null;
+    _currentToken = null;
+  }
+
+  /// รีเซ็ต auth error เมื่อได้รับ token ใหม่ แล้วสามารถเรียก connectSocket ได้อีกครั้ง
+  void resetAuthError() {
+    _hasAuthError = false;
+    socketStatus.value = SocketSatus.disconnect;
   }
 }
