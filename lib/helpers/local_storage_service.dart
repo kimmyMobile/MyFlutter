@@ -26,9 +26,9 @@ class LocalStorageService {
     await prefs.setString(Token.refreshToken, refreshToken);
   }
 
-  static Future<String?> getRefreshToken(String refkey) async {
+  static Future<String?> getRefreshToken() async {
       final prefs = await SharedPreferences.getInstance();
-      final refreshToken = prefs.getString(refkey);
+      final refreshToken = prefs.getString(Token.refreshToken);
       return refreshToken;
   }
 

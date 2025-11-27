@@ -32,6 +32,7 @@ class DudeeService {
   /// Dio instance สำหรับ API calls หลัก
   static final Dio _dioDudee =
       Dio()
+        ..interceptors.add(TokenInterceptor())
         //..interceptors.add(LogarteDioInterceptor(logarte))
         ..interceptors.add(
           InterceptorsWrapper(
@@ -41,7 +42,9 @@ class DudeeService {
               requestOptions.baseUrl = NetworkAPI.baseURLDudee;
 
               // Headers
-              final makeToken = await LocalStorageService.getToken(Token.accessToken);
+              final makeToken = await LocalStorageService.getToken(
+                Token.accessToken,
+              );
               // final makeToken = AppConfig.makeTokenAuthorization;
 
               final secretkey = AppConfig.secretKey;
@@ -58,9 +61,7 @@ class DudeeService {
             },
             onError: (dioError, handler) async {
               String? refreshToken =
-                  await LocalStorageService.getRefreshToken(
-                    'refreshToken',
-                  );
+                  await LocalStorageService.getRefreshToken();
               if (refreshToken == null) {
                 return handler.next(dioError);
               }
@@ -131,15 +132,16 @@ class DudeeService {
   }) async {
     final data = {'email': email, 'password': password, 'name': name};
     final response = await _dioDudee.post(NetworkAPI.register, data: data);
-    if (response.statusCode == 201 && response.data['message'] == 'User registered successfully.') {
-     final dataPayload = response.data['data'] as Map<String, dynamic>;
+    if (response.statusCode == 201 &&
+        response.data['message'] == 'User registered successfully.') {
+      final dataPayload = response.data['data'] as Map<String, dynamic>;
       print('Data Payload received: $dataPayload');
       final String accessToken = dataPayload['accessToken'] as String;
       final String refreshToken = dataPayload['refreshToken'] as String;
       await LocalStorageService.saveToken(accessToken);
       await LocalStorageService.saveRefreshToken(refreshToken);
-    }else {
-       throw DudeeServiceException(
+    } else {
+      throw DudeeServiceException(
         message: 'Register failed: Invalid response structure.',
       );
     }
@@ -165,16 +167,20 @@ class DudeeService {
       final int? userId = userMap['id'] as int?;
       final String? email = userMap['email'] as String?;
       final String? name = userMap['name'] as String?;
-      await LocalStorageService().setUserInfo(userId: userId, email: email, name: name);
+      await LocalStorageService().setUserInfo(
+        userId: userId,
+        email: email,
+        name: name,
+      );
       print('Data Payload received: $dataPayload');
-      
+
       final String accessTokens = dataPayload['accessToken'] as String;
       final String refreshTokens = dataPayload['refreshToken'] as String;
       await LocalStorageService.saveToken(accessTokens);
       await LocalStorageService.saveRefreshToken(refreshTokens);
       return 'Successful';
     } else {
-       if (response.data.containsKey('message')) {
+      if (response.data.containsKey('message')) {
         return response.data['message'];
       } else {
         return response.data['errors'];
@@ -183,9 +189,7 @@ class DudeeService {
   }
 
   Future<Response> refreshToken({required String refreshToken}) async {
-    String? ref = await LocalStorageService.getRefreshToken(
-      'refreshToken',
-    );
+    String? ref = await LocalStorageService.getRefreshToken();
     final data = {ref: refreshToken};
     return await _dioDudee.post(NetworkAPI.refresh, data: data);
   }
@@ -213,32 +217,33 @@ class DudeeService {
   Future<Response> logOut() async {
     final response = await _dioDudee.post(NetworkAPI.logout);
     print('logout response ${response.statusCode}');
-    if(response.statusCode == 201 && response.data['status'] == 'success'){
+    if (response.statusCode == 201 && response.data['status'] == 'success') {
       return response;
-    }else{
+    } else {
       throw DudeeServiceException(message: 'Logged out successfully.');
     }
   }
 
-  
-  Future<Response> postConversations({required List<int> participantIds}) async {
-    final Map<String, dynamic> data = {
-        'participantIds': participantIds,
-    };
+  Future<Response> postConversations({
+    required List<int> participantIds,
+  }) async {
+    final Map<String, dynamic> data = {'participantIds': participantIds};
     final response = await _dioDudee.post(
-        NetworkAPI.postConversations, 
-        data: data,
+      NetworkAPI.postConversations,
+      data: data,
     );
 
     print('Post Conversation Status ${response.statusCode}');
     print('Post Conversation Data ${response.data}');
-    
-    if ((response.statusCode == 201) && response.data != null && response.data['status'] == 'success') {
-        return response;
+
+    if ((response.statusCode == 201) &&
+        response.data != null &&
+        response.data['status'] == 'success') {
+      return response;
     } else {
-        throw DudeeServiceException(message: 'Failed to create conversation.');
+      throw DudeeServiceException(message: 'Failed to create conversation.');
     }
-}
+  }
 
   Future<Chat> getConversations() async {
     try {
@@ -250,7 +255,6 @@ class DudeeService {
       rethrow;
     }
   }
-
 
   Future<Friend> listFriend() async {
     final response = await _dioDudee.get(NetworkAPI.friend);
@@ -264,7 +268,9 @@ class DudeeService {
   }
 
   Future<Message> getMessages(int conversationId) async {
-    final response = await _dioDudee.get('${NetworkAPI.getMessages}/${conversationId}');
+    final response = await _dioDudee.get(
+      '${NetworkAPI.getMessages}/${conversationId}',
+    );
     print('Get Message Status ${response.statusCode}');
     print('Get Message Data ${response.data}');
     if (response.statusCode == 200) {
@@ -273,7 +279,6 @@ class DudeeService {
       throw DudeeServiceException(message: 'Failed to load messages.');
     }
   }
-
 
   Future<Response> sendMessage(int conversationId, String content) async {
     final data = {'conversationId': conversationId, 'content': content};
@@ -288,7 +293,10 @@ class DudeeService {
   }
 
   Future<Response> chatRead(int conversationId) async {
-    final response = await _dioDudee.post(NetworkAPI.read, data: {'conversationId': conversationId});
+    final response = await _dioDudee.post(
+      NetworkAPI.read,
+      data: {'conversationId': conversationId},
+    );
     print('Chat Read Status ${response.statusCode}');
     print('Chat Read Data ${response.data}');
     if (response.statusCode == 200) {

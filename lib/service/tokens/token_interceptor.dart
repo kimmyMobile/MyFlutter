@@ -38,9 +38,7 @@ class TokenInterceptor extends Interceptor {
           // อัปเดท token
           await LocalStorageService.saveToken(newTokens['accessToken']);
 
-          await LocalStorageService.saveRefreshToken(
-            newTokens['refreshToken'],
-          );
+          await LocalStorageService.saveRefreshToken(newTokens['refreshToken']);
 
           // ปล่อย queue ที่รออยู่ให้ยิงใหม่
           // ignore: unused_local_variable
@@ -75,7 +73,7 @@ class TokenInterceptor extends Interceptor {
   // --------------------
   Future<Map<String, dynamic>> _refreshToken() async {
     final dio = Dio();
-    final refreshToken = LocalStorageService.getRefreshToken;
+    final refreshToken = await LocalStorageService.getRefreshToken();
     final res = await dio.post(
       "${NetworkAPI.baseURLDudee}/auth/refresh",
       data: {"refreshToken": refreshToken},
