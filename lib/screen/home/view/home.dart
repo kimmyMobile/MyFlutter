@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_test1/config/routes/app_route.dart';
+import 'package:flutter_app_test1/controller/conversation_controller.dart';
+import 'package:flutter_app_test1/controller/friend_controller.dart';
+import 'package:flutter_app_test1/helpers/local_storage_service.dart';
 import 'package:flutter_app_test1/screen/widgets/custom_drawerbar.dart';
 import 'package:flutter_app_test1/screen/home/widgets/list_chat_widget.dart';
 import 'package:flutter_app_test1/screen/home/widgets/list_friend_widget.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get/get.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,29 +16,26 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class friend {
-  final String name;
-  final String lname;
-  friend({required this.name, required this.lname});
-}
-
-final List<friend> friends = [
-  friend(name: 'Miyamura', lname: 'Izumi'),
-  friend(name: 'Hori', lname: 'Kyoko'),
-  friend(name: 'Shoya', lname: 'Ishida'),
-  friend(name: 'Nishimiya', lname: 'Shoko'),
-  friend(name: 'Hayasaka', lname: 'Akito'),
-  friend(name: 'Sakurai', lname: 'Haruna'),
-  friend(name: 'Shokuho', lname: 'Misaki'),
-  friend(name: 'Kamijo', lname: 'Toma'),
-];
-
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
+  Map<String, dynamic> _currentUserInfo = {};
+  final ConversationController conversationController =
+      Get.put(ConversationController());
+  final FriendController friendController = Get.put(FriendController());
 
   @override
   void initState() {
     super.initState();
+    _loadCurrentUserInfo();
+  }
+
+  Future<void> _loadCurrentUserInfo() async {
+    final userInfo = await LocalStorageService().getUserInfo();
+    setState(() {
+      _currentUserInfo = userInfo;
+    });
+    conversationController.fetchConversations();
+    friendController.fetchFriends();
   }
 
   @override
@@ -96,29 +97,50 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 20),
-            Container(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: friends.length,
-                itemBuilder: (context, index) {
-                  final friend = friends[index];
-                  return ListFriendWidget(
-                    name: friend.name,
-                    lname: friend.lname,
+            Column(
+              children: [
+                GetBuilder<FriendController>(builder: (friendController) {
+                  if (friendController.isLoading.value &&
+                      friendController.friends.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return Container(
+                    height: 120,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: friendController.friends.length,
+                      itemBuilder: (context, index) {
+                        final friend = friendController.friends[index];
+                        return ListFriendWidget(
+                          friend: friend,
+                          currentUserId: _currentUserInfo['userId'],
+                        );
+                      },
+                    ),
                   );
-                },
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                scrollDirection: Axis.vertical,
-                itemCount: friends.length,
-                itemBuilder: (context, index) {
-                  final friend = friends[index];
-                  return ListChatWidget(name: friend.name, lname: friend.lname);
-                },
-              ),
+                }),
+                GetBuilder<ConversationController>(
+                  builder: (controller) {
+                    if (controller.isLoading.value &&
+                        controller.conversations.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.45,
+                      child: ListView.builder(
+                        itemCount: controller.conversations.length,
+                        itemBuilder: (context, index) {
+                          final conversation = controller.conversations[index];
+                          return ListChatWidget(
+                            conversation: conversation,
+                            currentUserId: _currentUserInfo['userId'],
+                          );
+                        },
+                      ),
+                    );
+                  },
+                )
+              ],
             ),
           ],
         ),

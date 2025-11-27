@@ -37,7 +37,7 @@ class LocalStorageService {
     await prefs.remove(refkey);
   }
   
-  Future<void> setUserInfo({int? userId , String? email, password, accessToken, refreshToken}) async {
+  Future<void> setUserInfo({int? userId , String? email, name}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (userId != null) {
         prefs.setInt(AppSetting.userId, userId); 
@@ -45,32 +45,19 @@ class LocalStorageService {
         prefs.remove(AppSetting.userId); 
     }
     prefs.setString(AppSetting.email, email ?? "");
-    prefs.setString(AppSetting.password, password ?? "");
-    prefs.setString(AppSetting.accessToken, accessToken ?? "");
-    prefs.setString(AppSetting.refreshToken, refreshToken ?? "");
+    prefs.setString(AppSetting.name, name ?? "");
   }
 
   Future<Map<String, dynamic>> getUserInfo() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // 1. ดึงข้อมูล userId (ประเภท int)
-    // ใช้ .getInt(). ถ้าไม่มีค่าอยู่ จะคืนค่าเป็น null
     final int? userId = prefs.getInt(AppSetting.userId); 
-
-    // 2. ดึงข้อมูล String อื่นๆ
-    // ใช้ .getString(). ถ้าไม่มีค่าอยู่ จะคืนค่าเป็น null
     final String? email = prefs.getString(AppSetting.email);
-    final String? password = prefs.getString(AppSetting.password);
-    final String? accessToken = prefs.getString(AppSetting.accessToken);
-    final String? refreshToken = prefs.getString(AppSetting.refreshToken);
+    final String? name = prefs.getString(AppSetting.name);
 
-    // 3. รวบรวมข้อมูลทั้งหมดในรูปแบบ Map เพื่อให้ง่ายต่อการนำไปใช้งาน
     return {
         'userId': userId,
         'email': email,
-        'password': password,
-        'accessToken': accessToken,
-        'refreshToken': refreshToken,
+        'name': name,
     };
   }
 }

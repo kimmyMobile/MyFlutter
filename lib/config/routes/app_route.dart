@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_test1/controller/user_controller.dart';
+import 'package:flutter_app_test1/model/conversation.dart';
+import 'package:flutter_app_test1/screen/chat/view/chat.dart';
 import 'package:flutter_app_test1/screen/home/view/home.dart';
 import 'package:flutter_app_test1/screen/login/login.dart';
 import 'package:flutter_app_test1/screen/profile/profile.dart';
@@ -15,6 +17,9 @@ class AppRoute {
   static const String login = '/login';
   static const String register = '/register';
   static const String profile = '/profile';
+  static const String chat = '/chat';
+
+  Conversation conversation = Conversation();
 
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
@@ -66,6 +71,7 @@ class AppRoute {
       //     return MaterialPage(child: Login());
       //   },
       // ),
+
       GoRoute(
         name: register,
         path: register,
@@ -79,6 +85,14 @@ class AppRoute {
         path: profile,
         pageBuilder: (context, state) {
           return MaterialPage(child: Profile());
+        },
+      ),
+
+      GoRoute(
+        name: chat,
+        path: '${chat}/:conversationId',
+        pageBuilder: (context, state) {
+          return MaterialPage(child: ChatPage(conversationId: state.pathParameters['conversationId']!,));
         },
       ),
     ],

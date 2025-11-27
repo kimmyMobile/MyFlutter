@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app_test1/config/routes/app_route.dart';
 import 'package:flutter_app_test1/model/user_profile.dart';
+import 'package:flutter_app_test1/service/auth.dart';
 import 'package:flutter_app_test1/service/dudee_service.dart';
-import 'package:go_router/go_router.dart';
 
 // ignore: must_be_immutable
 class Profile extends StatefulWidget {
@@ -14,26 +13,29 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-   UserProfile? userProfile;
+  UserProfile? userProfile;
+
   @override
   void initState() {
     super.initState();
     fetchUserProfile();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> fetchUserProfile() async {
     await Future.delayed(const Duration(seconds: 2));
     userProfile = await DudeeService().getUserProfile();
-    setState(() {
-      
-    });
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> logout() async {
-    final response = await DudeeService().logOut();
-    if (response.statusCode == 201) {
-      GoRouter.of(context).goNamed(AppRoute.login) ;
-    }
+    await Auth().logout(context);
   }
 
   @override

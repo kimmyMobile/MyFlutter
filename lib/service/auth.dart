@@ -18,11 +18,38 @@ class Auth {
     print(result);
     if (result == 'Successful') {
       userController.setIsLogIn(logIn: true);
-      // userController.setUserData();
       GoRouter.of(context).goNamed(AppRoute.home);
       return true;
     }else{
       return false;
     }
+  }
+
+  Future<bool> register(
+    BuildContext context, {
+      required String email,
+      required String password,
+      required String name,
+  }) async {
+    dynamic result = await DudeeService().register(
+      email: email,
+      password: password,
+      name: name,
+    );
+    print(result.statusCode);
+    if (result.statusCode == 201) { 
+      userController.setIsLogIn(logIn: true);
+      GoRouter.of(context).goNamed(AppRoute.home);
+      return true;
+    }else{
+      return false;
+    }
+  }
+
+  Future<bool> logout(BuildContext context) async {
+    await DudeeService().logOut();
+    userController.setIsLogIn(logIn: false);
+    GoRouter.of(context).goNamed(AppRoute.login);
+    return true;
   }
 }

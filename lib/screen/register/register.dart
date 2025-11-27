@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_test1/config/routes/app_route.dart';
-import 'package:flutter_app_test1/service/dudee_service.dart';
+import 'package:flutter_app_test1/controller/user_controller.dart';
+import 'package:flutter_app_test1/service/auth.dart';
+import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 class Register extends StatefulWidget {
@@ -15,22 +17,18 @@ class _RegisterPageState extends State<Register> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final nameController = TextEditingController();
+  final UserController userController = Get.put(UserController());
+
 
   void onRegister() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final response = await DudeeService().register(
+        await Auth().register(
+          context,
           email: emailController.text,
           password: passwordController.text,
           name: nameController.text,
         );
-        print(response.statusCode);
-        if (response.statusCode == 201) {
-          print("Registration successful: $response");
-          GoRouter.of(context).pushNamed(AppRoute.home);
-        } else {
-          print("Registration failed with status: ${response.statusCode}");
-        }
       } catch (e) {
         print(e);
       }

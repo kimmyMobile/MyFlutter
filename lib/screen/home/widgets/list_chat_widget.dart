@@ -1,37 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app_test1/config/routes/app_route.dart';
+import 'package:flutter_app_test1/model/chat_model.dart';
+import 'package:flutter_app_test1/service/dudee_service.dart';
+import 'package:go_router/go_router.dart';
 
 class ListChatWidget extends StatelessWidget {
-  final String name;
-  final String lname;
+  final Datum conversation;
+  final int? currentUserId;
 
   const ListChatWidget({
-    required this.name,
-    required this.lname,
+    super.key,
+    required this.conversation,
+    this.currentUserId,
   });
 
   @override
   Widget build(BuildContext context) {
+    final dudee = DudeeService();
+    final otherParticipant = conversation.participants?.firstWhere(
+      (p) => p.id != currentUserId,
+      orElse: () => Participant(name: 'Unknown'),
+    );
+    final lastMessage = conversation.lastMessage;
+    final unreadCount = conversation.unreadCount ?? 0;
+
     return ListTile(
-      leading: CircleAvatar(
+      leading: const CircleAvatar(
         radius: 25,
       ),
-
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '$name $lname',
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
+      title: Text(
+        otherParticipant?.name ?? 'Unknown User',
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
-      
-      trailing: const Icon(Icons.check_circle_outline, size: 18, color: Colors.grey),
-      
-      onTap: () {
-        // 
+      subtitle: Text(
+        lastMessage?.content ?? 'No messages yet',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: unreadCount > 0 ? Colors.black : Colors.grey,
+          fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: unreadCount > 0
+          ? CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.blue,
+              child: Text(
+                unreadCount.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            )
+          : const SizedBox.shrink(),
+      onTap: () async {
+        try {
+          final conversationId = conversation.id;
+          if (conversationId == null) {
+            print('Conversation ID is null');
+            return;
+          }
+          //ใช้ตรงไหนดีกว่ากันนนน
+          dudee.chatRead(conversationId);
+          
+          GoRouter.of(context).pushNamed(
+            AppRoute.chat,
+            pathParameters: {'conversationId': conversationId.toString()},
+          );
+        } catch (e) {
+          print('Failed to create or navigate to conversation: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to create conversation: $e')),
+          );
+        }
       },
     );
   }
-
 }
