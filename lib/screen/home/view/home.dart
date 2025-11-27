@@ -5,10 +5,8 @@ import 'package:flutter_app_test1/controller/conversation_controller.dart';
 import 'package:flutter_app_test1/controller/friend_controller.dart';
 import 'package:flutter_app_test1/controller/socket_controller.dart';
 import 'package:flutter_app_test1/controller/user_controller.dart';
-import 'package:flutter_app_test1/helpers/local_storage_service.dart';
 import 'package:flutter_app_test1/screen/home/widgets/list_chat_widget.dart';
 import 'package:flutter_app_test1/screen/home/widgets/list_friend_widget.dart';
-import 'package:flutter_app_test1/screen/widgets/custom_drawerbar.dart';
 import 'package:flutter_app_test1/screen/widgets/custom_drawerbar.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +33,17 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     userController.fetchUserProfile();
     _loadCurrentUserInfo();
-    //skController.connectSocket();
+    // เชื่อมต่อ Socket เมื่อเข้าหน้า Home
+    _connectSocket();
+  }
+
+  /// เชื่อมต่อ Socket (async)
+  Future<void> _connectSocket() async {
+    try {
+      await skController.connectSocket();
+    } catch (e) {
+      print('❌ [Home] Failed to connect socket: $e');
+    }
   }
 
   @override
@@ -56,6 +64,9 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Home Page'),
         actions: <Widget>[
+          Obx(() {
+            return Text(skController.socketStatus.value.name);
+          }),
           Builder(
             builder: (BuildContext innerContext) {
               return IconButton(
