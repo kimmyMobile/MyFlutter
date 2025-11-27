@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app_test1/config/routes/app_route.dart';
 import 'package:flutter_app_test1/controller/conversation_controller.dart';
 import 'package:flutter_app_test1/controller/friend_controller.dart';
+import 'package:flutter_app_test1/controller/socket_controller.dart';
 import 'package:flutter_app_test1/helpers/local_storage_service.dart';
 import 'package:flutter_app_test1/screen/widgets/custom_drawerbar.dart';
 import 'package:flutter_app_test1/screen/home/widgets/list_chat_widget.dart';
@@ -22,12 +23,21 @@ class _HomePageState extends State<HomePage> {
   final ConversationController conversationController =
       Get.put(ConversationController());
   final FriendController friendController = Get.put(FriendController());
+  SocketController skController = Get.put(SocketController());
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUserInfo();
+    //skController.connectSocket();
   }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
 
   Future<void> _loadCurrentUserInfo() async {
     final userInfo = await LocalStorageService().getUserInfo();
