@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app_test1/config/routes/app_route.dart';
 import 'package:flutter_app_test1/model/chat_model.dart';
-import 'package:flutter_app_test1/service/dudee_service.dart';
+import 'package:flutter_app_test1/screen/widgets/profile_circle.dart';
 import 'package:go_router/go_router.dart';
 
 class ListChatWidget extends StatelessWidget {
@@ -16,7 +16,6 @@ class ListChatWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dudee = DudeeService();
     final otherParticipant = conversation.participants?.firstWhere(
       (p) => p.id != currentUserId,
       orElse: () => Participant(name: 'Unknown'),
@@ -25,9 +24,7 @@ class ListChatWidget extends StatelessWidget {
     final unreadCount = conversation.unreadCount ?? 0;
 
     return ListTile(
-      leading: const CircleAvatar(
-        radius: 25,
-      ),
+      leading: ProfileCircle(imageUrl: otherParticipant?.profileUrl, size: 60),
       title: Text(
         otherParticipant?.name ?? 'Unknown User',
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -42,14 +39,7 @@ class ListChatWidget extends StatelessWidget {
         ),
       ),
       trailing: unreadCount > 0
-          ? CircleAvatar(
-              radius: 12,
-              backgroundColor: Colors.blue,
-              child: Text(
-                unreadCount.toString(),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            )
+          ? ProfileCircle(imageUrl: otherParticipant?.profileUrl, size: 20)
           : const SizedBox.shrink(),
       onTap: () async {
         try {
@@ -58,9 +48,6 @@ class ListChatWidget extends StatelessWidget {
             print('Conversation ID is null');
             return;
           }
-          //ใช้ตรงไหนดีกว่ากันนนน
-          dudee.chatRead(conversationId);
-          
           GoRouter.of(context).pushNamed(
             AppRoute.chat,
             pathParameters: {'conversationId': conversationId.toString()},

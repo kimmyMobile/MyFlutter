@@ -182,34 +182,40 @@ class Participant {
     final int? id;
     final String? email;
     final String? name;
+    final String? profileUrl;
 
     Participant({
         this.id,
         this.email,
         this.name,
+        this.profileUrl,
     });
 
     Participant copyWith({
         int? id,
         String? email,
         String? name,
+        String? profileUrl,
     }) => 
         Participant(
             id: id ?? this.id,
             email: email ?? this.email,
             name: name ?? this.name,
+            profileUrl: profileUrl ?? this.profileUrl,
         );
 
     factory Participant.fromJson(Map<String, dynamic> json) => Participant(
         id: json["id"],
         email: json["email"],
         name: json["name"],
+        profileUrl: json["profileUrl"],
     );
 
     Map<String, dynamic> toJson() => {
         "id": id,
         "email": email,
         "name": name,
+        "profileUrl": profileUrl,
     };
 }
 

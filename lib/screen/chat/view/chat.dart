@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app_test1/config/routes/app_route.dart';
+import 'package:flutter_app_test1/controller/socket_controller.dart';
+import 'package:flutter_app_test1/controller/user_controller.dart';
 import 'package:flutter_app_test1/helpers/local_storage_service.dart';
 import 'package:flutter_app_test1/model/message_model.dart';
+import 'package:flutter_app_test1/screen/widgets/profile_circle.dart';
 import 'package:flutter_app_test1/service/dudee_service.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:go_router/go_router.dart';
 
 class ChatPage extends StatefulWidget {
   final String conversationId;
@@ -19,6 +26,9 @@ class _ChatPageState extends State<ChatPage> {
   Map<String, dynamic> _currentUserInfo = {};
   final ScrollController _scrollController = ScrollController();
 
+  SocketController skController = Get.put(SocketController());
+  UserController userController = Get.put(UserController());
+
   @override
   void initState() {
     super.initState();
@@ -27,8 +37,10 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+
   Future<void> fetchData() async {
     try {
+      await dudee.chatRead(int.parse(widget.conversationId));
       final messageResponse = await dudee.getMessages(int.parse(widget.conversationId));
       if (messageResponse.data != null && messageResponse.data!.items != null) {
         final items = messageResponse.data!.items!;
@@ -56,13 +68,10 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _sendMessage () async {
     if (_messageController.text.trim().isEmpty) return;
-
     final response = await DudeeService().sendMessage(
       int.parse(widget.conversationId),
       _messageController.text.trim(),
     );
-    print('Send Message Status ${response.statusCode}');
-    print('Send Message Data ${response.data}');
     if (response.statusCode == 201) {
       _messageController.clear();
       await fetchData();
@@ -92,13 +101,20 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            GoRouter.of(context).pushNamed(AppRoute.home);
+          },
+        ),
       ),
-      body: Column(
-        children: [
-          Expanded(child: _buildMessageList()),
-          _buildUserInput(),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: _buildMessageList()),
+            _buildUserInput(),
+          ],
+        ),
       ),
     );
   }
@@ -121,30 +137,48 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildMessageBubble(Item message, bool isMe) {
     final participant = message.sender;
+    final bool readed = message.isReadByMe ?? false;
     if (participant == null) {
       return const SizedBox.shrink();
     }
 
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.blue[200] : Colors.grey[300],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            if (!isMe)
-              Text(participant.name ?? 'Unknown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            if (!isMe) SizedBox(height: 4),
+    final messageBubble = Container(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: BoxDecoration(
+        color: isMe ? Colors.blue[200] : Colors.grey[300],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isMe)
+            Text(participant.name ?? 'Unknown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          if (!isMe) SizedBox(height: 4),
             Text(message.content ?? ''),
-          ],
-        ),
+          if (isMe && readed)
+            Text('✓ อ่านแล้ว', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        ],
       ),
     );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMe)
+            ProfileCircle(imageUrl: message.sender?.profileUrl, size: 30),
+          if (!isMe) const SizedBox(width: 8),
+          Flexible(child: messageBubble),
+          if (isMe) const SizedBox(width: 8),
+          if (isMe)
+            ProfileCircle(imageUrl: userController.userProfile.value?.data?.profileUrl, size: 30),
+        ]
+        ),
+      );
   }
 
   Widget _buildUserInput() {

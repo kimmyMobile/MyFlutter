@@ -32,7 +32,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     userController.fetchUserProfile();
     // เชื่อมต่อ Socket เมื่อเข้าหน้า Home
-    _connectSocket();
+    //_connectSocket();
   }
 
   //เชื่อมต่อ Socket (async)
@@ -42,6 +42,13 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       print('❌ [Home] Failed to connect socket: $e');
     }
+  }
+
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      conversationController.fetchConversations(),
+      friendController.fetchFriends(),
+    ]);
   }
 
   @override
@@ -55,7 +62,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       endDrawer: const CustomDrawerbar(),
       appBar: AppBar(
-        title: const Text('Home Page'),
+        title: const Text('Message'),
         actions: <Widget>[
           Obx(() {
             return Text(skController.socketStatus.value.name);
@@ -72,98 +79,119 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Obx(() {
-                  final profileUrl =
-                      userController.userProfile.value?.data?.profileUrl;
-                  return InkWell(
-                    onTap: () {
-                      GoRouter.of(context).pushNamed(AppRoute.profile);
-                    },
-                    child: ProfileCircle(imageUrl: profileUrl),
-                  );
-                }),
-                const SizedBox(width: 10),
-                const Text(
-                  'Chats',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                Spacer(),
-                const Icon(Icons.camera_alt_outlined, size: 28),
-                const SizedBox(width: 16),
-                const Icon(Icons.edit, size: 28),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(borderSide: BorderSide.none),
-                filled: true,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Column(
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              GetBuilder<FriendController>(
-                builder: (friendController) {
-                  if (friendController.isLoading.value &&
-                      friendController.friends.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  return Container(
-                    height: 120,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: friendController.friends.length,
-                      itemBuilder: (context, index) {
-                        final friend = friendController.friends[index];
-                        return ListFriendWidget(
-                          friend: friend,
-                          currentUserId: userController.userProfile.value?.data?.userId,
-                        );
-                      },
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Obx(() {
+                      final profileUrl =
+                          userController.userProfile.value?.data?.profileUrl;
+                      return InkWell(
+                        onTap: () {
+                          GoRouter.of(context).pushNamed(AppRoute.profile);
+                        },
+                        child: ProfileCircle(imageUrl: profileUrl),
+                      );
+                    }),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Chats',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
-                  );
-                },
+                    Spacer(),
+                    const Icon(Icons.camera_alt_outlined, size: 28),
+                    const SizedBox(width: 16),
+                    const Icon(Icons.edit, size: 28),
+                  ],
+                ),
               ),
-              GetBuilder<ConversationController>(
-                builder: (controller) {
-                  if (controller.isLoading.value &&
-                      controller.conversations.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  return SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.45,
-                    child: ListView.builder(
-                      itemCount: controller.conversations.length,
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Search...',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(borderSide: BorderSide.none),
+                    filled: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Obx(() {
+                final isFriendLoading = friendController.isLoading.value && friendController.friends.isEmpty;
+                final isConversationLoading = conversationController.isLoading.value && conversationController.conversations.isEmpty;
+
+                if (isFriendLoading || isConversationLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                return Column(
+                  children: [
+                    // Friend List
+                    SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: friendController.friends.length,
+                        itemBuilder: (context, index) {
+                          final friend = friendController.friends[index];
+                          return ListFriendWidget(
+                            friend: friend,
+                            currentUserId: userController.userProfile.value?.data?.userId,
+                          );
+                        },
+                      ),
+                    ),
+                    // Conversation List
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: conversationController.conversations.length,
                       itemBuilder: (context, index) {
-                        final conversation = controller.conversations[index];
+                        final conversation = conversationController.conversations[index];
                         return ListChatWidget(
                           conversation: conversation,
                           currentUserId: userController.userProfile.value?.data?.userId,
                         );
                       },
                     ),
-                  );
-                },
-              ),
+                  ],
+                );
+              }),
             ],
           ),
-        ],
+        ),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8.0,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.home),
+              onPressed: () {
+                // ปัจจุบันอยู่ที่หน้า Home แล้วไม่ต้องทำอะไร
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.person),
+              onPressed: () {
+                GoRouter.of(context).pushNamed(AppRoute.profile);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

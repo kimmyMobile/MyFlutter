@@ -1,36 +1,36 @@
 // To parse this JSON data, do
 //
-//     final friend = friendFromJson(jsonString);
+//     final friends = friendsFromJson(jsonString);
 
 import 'dart:convert';
 
-Friend friendFromJson(String str) => Friend.fromJson(json.decode(str));
+Friends friendsFromJson(String str) => Friends.fromJson(json.decode(str));
 
-String friendToJson(Friend data) => json.encode(data.toJson());
+String friendsToJson(Friends data) => json.encode(data.toJson());
 
-class Friend {
+class Friends {
     final String? status;
     final String? message;
     final Data? data;
 
-    Friend({
+    Friends({
         this.status,
         this.message,
         this.data,
     });
 
-    Friend copyWith({
+    Friends copyWith({
         String? status,
         String? message,
         Data? data,
     }) => 
-        Friend(
+        Friends(
             status: status ?? this.status,
             message: message ?? this.message,
             data: data ?? this.data,
         );
 
-    factory Friend.fromJson(Map<String, dynamic> json) => Friend(
+    factory Friends.fromJson(Map<String, dynamic> json) => Friends(
         status: json["status"],
         message: json["message"],
         data: json["data"] == null ? null : Data.fromJson(json["data"]),
@@ -77,12 +77,16 @@ class Datum {
     final String? email;
     final String? name;
     final DateTime? createdAt;
+    final String? profileUrl;
+    final int? conversationId;
 
     Datum({
         this.id,
         this.email,
         this.name,
         this.createdAt,
+        this.profileUrl,
+        this.conversationId,
     });
 
     Datum copyWith({
@@ -90,12 +94,16 @@ class Datum {
         String? email,
         String? name,
         DateTime? createdAt,
+        String? profileUrl,
+        int? conversationId,
     }) => 
         Datum(
             id: id ?? this.id,
             email: email ?? this.email,
             name: name ?? this.name,
             createdAt: createdAt ?? this.createdAt,
+            profileUrl: profileUrl ?? this.profileUrl,
+            conversationId: conversationId ?? this.conversationId,
         );
 
     factory Datum.fromJson(Map<String, dynamic> json) => Datum(
@@ -103,6 +111,8 @@ class Datum {
         email: json["email"],
         name: json["name"],
         createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
+        profileUrl: json["profileUrl"],
+        conversationId: json["conversationId"],
     );
 
     Map<String, dynamic> toJson() => {
@@ -110,6 +120,8 @@ class Datum {
         "email": email,
         "name": name,
         "createdAt": createdAt?.toIso8601String(),
+        "profileUrl": profileUrl,
+        "conversationId": conversationId,
     };
 }
 

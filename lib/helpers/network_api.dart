@@ -15,5 +15,6 @@ class NetworkAPI {
   static const String read = '/chat/read';
 
   static const String friend = '/users/friends';
+  static const String getUserById = '/users';
 
 }

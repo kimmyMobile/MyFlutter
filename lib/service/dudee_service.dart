@@ -52,6 +52,8 @@ class DudeeService {
               final secretkey = AppConfig.secretKey;
               final cookie = AppConfig.cookie;
 
+              print('Token : ${makeToken}');
+
               requestOptions.headers['Authorization'] = 'Bearer $makeToken';
               requestOptions.headers['secretkey'] = secretkey;
               requestOptions.headers['Cookie'] = cookie;
@@ -270,7 +272,7 @@ class DudeeService {
 
   /// ดึงข้อมูล friends ทั้งหมด
   /// แก้ไข: เพิ่ม error handling, timeout และใช้ fromJson โดยตรง
-  Future<Friend> listFriend() async {
+  Future<Friends> listFriend() async {
     try {
       // เพิ่ม timeout สำหรับ request นี้ (60 วินาที) เพื่อรองรับ server ที่ response ช้า
       final response = await _dioDudee.get(
@@ -285,10 +287,10 @@ class DudeeService {
       if (response.statusCode == 200) {
         // ใช้ response.data โดยตรง (เป็น Map อยู่แล้ว) ไม่ต้อง encode/decode ซ้ำ
         if (response.data is Map<String, dynamic>) {
-          return Friend.fromJson(response.data as Map<String, dynamic>);
+          return Friends.fromJson(response.data as Map<String, dynamic>);
         } else {
           // Fallback: ถ้าไม่ใช่ Map ให้ encode แล้ว parse
-          return friendFromJson(jsonEncode(response.data));
+          return friendsFromJson(jsonEncode(response.data));
         }
       } else {
         throw DudeeServiceException(
@@ -311,8 +313,6 @@ class DudeeService {
     final response = await _dioDudee.get(
       '${NetworkAPI.getMessages}/${conversationId}',
     );
-    print('Get Message Status ${response.statusCode}');
-    print('Get Message Data ${response.data}');
     if (response.statusCode == 200) {
       return Message.fromJson(response.data);
     } else {
@@ -323,8 +323,6 @@ class DudeeService {
   Future<Response> sendMessage(int conversationId, String content) async {
     final data = {'conversationId': conversationId, 'content': content};
     final response = await _dioDudee.post(NetworkAPI.sendMessage, data: data);
-    print('Send Message Status ${response.statusCode}');
-    print('Send Message Data ${response.data}');
     if (response.statusCode == 201) {
       return response;
     } else {
@@ -339,10 +337,22 @@ class DudeeService {
     );
     print('Chat Read Status ${response.statusCode}');
     print('Chat Read Data ${response.data}');
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return response;
     } else {
       throw DudeeServiceException(message: 'Failed to read chat.');
+    }
+  }
+
+
+  Future<Response> getUserById(int userId) async {
+    final response = await _dioDudee.get('${NetworkAPI.getUserById}/$userId', data: userId);    
+    print('Get User By Id Status ${response.statusCode}');
+    print('Get User By Id Data ${response.data}');
+    if (response.statusCode == 200) {
+      return response;
+    } else {      
+      throw DudeeServiceException(message: 'Failed to load user profile');
     }
   }
 }

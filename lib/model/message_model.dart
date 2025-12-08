@@ -158,33 +158,39 @@ class Sender {
     final int? id;
     final String? email;
     final String? name;
+    final String? profileUrl;
 
     Sender({
         this.id,
         this.email,
         this.name,
+        this.profileUrl,
     });
 
     Sender copyWith({
         int? id,
         String? email,
         String? name,
+        String? profileUrl,
     }) => 
         Sender(
             id: id ?? this.id,
             email: email ?? this.email,
             name: name ?? this.name,
+            profileUrl: profileUrl ?? this.profileUrl,
         );
 
     factory Sender.fromJson(Map<String, dynamic> json) => Sender(
         id: json["id"],
         email: json["email"],
         name: json["name"],
+        profileUrl: json["profileUrl"],
     );
 
     Map<String, dynamic> toJson() => {
         "id": id,
         "email": email,
         "name": name,
+        "profileUrl": profileUrl,
     };
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app_test1/config/routes/app_route.dart';
 import 'package:flutter_app_test1/controller/conversation_controller.dart';
 import 'package:flutter_app_test1/model/friend_model.dart' as friend_model;
+import 'package:flutter_app_test1/screen/widgets/profile_circle.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,36 +18,27 @@ class ListFriendWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ConversationController conversationController =
-        Get.find<ConversationController>();
+    ConversationController conversationController = Get.put(
+      ConversationController(),
+    );
+
+
     return InkWell(
       onTap: () async {
         try {
-           final existingConversation =
-              conversationController.conversations.firstWhereOrNull(
-            (convo) =>
-                convo.participants?.length == 2 &&
-                convo.participants!.any((p) => p.id == friend.id) &&
-                convo.participants!.any((p) => p.id == currentUserId),
-          );
-          if (existingConversation != null) {
+          int? conversationId = friend.conversationId;
+          if (conversationId != null) {
             GoRouter.of(context).pushNamed(
               AppRoute.chat,
-              pathParameters: {
-                'conversationId': existingConversation.id.toString()
-              },
+              pathParameters: {'conversationId': conversationId.toString()},
             );
           } else {
-            if (currentUserId != null && friend.id != null) {
-              final newConversationId = await conversationController
-                  .createConversation([currentUserId!, friend.id!]);
-              if (newConversationId != null && context.mounted) {
-                GoRouter.of(context).pushNamed(
-                  AppRoute.chat,
-                  pathParameters: {'conversationId': newConversationId.toString()},
-                );
-              }
-            }
+            final newConversation =
+                await conversationController.createConversation([friend.id!]);
+            GoRouter.of(context).pushNamed(
+              AppRoute.chat,
+              pathParameters: {'conversationId': newConversation.toString()},
+            );
           }
         } catch (e) {
           print('Failed to create or navigate to conversation: $e');
@@ -62,9 +54,7 @@ class ListFriendWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const CircleAvatar(
-              radius: 30,
-            ),
+            ProfileCircle(imageUrl: friend.profileUrl, size: 60),
             const SizedBox(height: 4),
             Text(
               friend.name ?? 'Unknown',
