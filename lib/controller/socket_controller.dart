@@ -1,6 +1,7 @@
 import 'package:flutter_app_test1/helpers/local_storage_service.dart';
 import 'package:flutter_app_test1/helpers/network_api.dart';
 import 'package:get/get.dart';
+import 'package:flutter_app_test1/controller/friend_controller.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import '../service/tokens/token_interceptor.dart';
@@ -12,10 +13,9 @@ class SocketController extends GetxController {
   socket_io.Socket? socket;
   String? _currentToken;
   bool _hasAuthError = false;
+  late final FriendController _friendController;
 
-  /// เชื่อมต่อ Socket (เหมือน getSocket ใน TypeScript)
-  /// ถ้า socket connected อยู่แล้วและ token ไม่เปลี่ยน จะ return socket เดิม
-  /// ถ้า token เปลี่ยน จะ disconnect และสร้างใหม่
+  /// เชื่อมต่อ Socket และตั้งค่า listeners
   Future<socket_io.Socket> connectSocket() async {
     // ดึง token ปัจจุบัน
     final accessToken = await LocalStorageService.getToken(Token.accessToken);
@@ -55,6 +55,9 @@ class SocketController extends GetxController {
 
     // Connect socket (เพราะใช้ autoConnect: false)
     socket!.connect();
+
+    // Get friend controller instance
+    _friendController = Get.find<FriendController>();
 
     return socket!;
   }
@@ -148,6 +151,17 @@ class SocketController extends GetxController {
     socket!.onReconnectFailed((_) {
       print('❌ [Socket] Reconnection failed');
       socketStatus.value = SocketSatus.error;
+    });
+
+    // Listener สำหรับสถานะออนไลน์ของเพื่อน
+    socket!.on('user:status', (data) {
+      if (data is Map<String, dynamic>) {
+        final int? userId = data['userId'];
+        final bool? isOnline = data['isOnline'];
+        if (userId != null && isOnline != null) {
+          _friendController.updateUserStatus(userId, isOnline);
+        }
+      }
     });
   }
 

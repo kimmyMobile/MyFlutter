@@ -6,6 +6,9 @@ class FriendController extends GetxController {
   RxList<Datum> friends = <Datum>[].obs;
   RxBool isLoading = false.obs;
 
+  // Map เพื่อเก็บสถานะออนไลน์ (userId, isOnline)
+  final RxMap<int, bool> onlineStatus = <int, bool>{}.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -37,5 +40,11 @@ class FriendController extends GetxController {
       isLoading.value = false;
       update();
     }
+  }
+
+  /// อัปเดตสถานะออนไลน์ของ user
+  void updateUserStatus(int userId, bool isOnline) {
+    onlineStatus[userId] = isOnline;
+    print('🟢 User $userId is ${isOnline ? 'online' : 'offline'}');
   }
 }

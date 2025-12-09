@@ -48,10 +48,11 @@ class ListChatWidget extends StatelessWidget {
             print('Conversation ID is null');
             return;
           }
-          GoRouter.of(context).pushNamed(
+       final result = await  GoRouter.of(context).pushNamed(
             AppRoute.chat,
             pathParameters: {'conversationId': conversationId.toString()},
           );
+          print(  'Returned from chat with result: $result');
         } catch (e) {
           print('Failed to create or navigate to conversation: $e');
           ScaffoldMessenger.of(context).showSnackBar(

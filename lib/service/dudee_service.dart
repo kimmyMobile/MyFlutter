@@ -218,11 +218,11 @@ class DudeeService {
     }
   }
 
-  Future<Response> logOut() async {
+  Future<bool> logOut() async {
     final response = await _dioDudee.post(NetworkAPI.logout);
     print('logout response ${response.statusCode}');
-    if (response.statusCode == 201 && response.data['status'] == 'success') {
-      return response;
+    if (response.statusCode == 200 && response.data['status'] == 'success') {
+      return true;
     } else {
       throw DudeeServiceException(message: 'Logged out successfully.');
     }
@@ -355,4 +355,5 @@ class DudeeService {
       throw DudeeServiceException(message: 'Failed to load user profile');
     }
   }
+
 }

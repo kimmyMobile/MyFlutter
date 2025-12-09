@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1070006270346",
+    "project_id": "flutter-inturn",
+    "storage_bucket": "flutter-inturn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1070006270346:android:5ac243d061b2e9454bb073",
+        "android_client_info": {
+          "package_name": "com.example.flutter_app_test1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmasqn2UwvioOl0CZpJXDbKsjwfvYzyM8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

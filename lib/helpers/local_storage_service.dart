@@ -70,4 +70,9 @@ class LocalStorageService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(AppSetting.isLogin) ?? false;
   }
+
+  static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
 }

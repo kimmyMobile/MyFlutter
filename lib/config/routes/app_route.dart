@@ -6,12 +6,13 @@ import 'package:flutter_app_test1/screen/home/view/home.dart';
 import 'package:flutter_app_test1/screen/login/login.dart';
 import 'package:flutter_app_test1/screen/profile/profile.dart';
 import 'package:flutter_app_test1/screen/register/register.dart';
+import 'package:flutter_app_test1/screen/splash/view/splash_sceen.dart';
 import 'package:go_router/go_router.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class AppRoute {
-  static const String currentRoute = '/';
+  static const String splash = '/';
   static const String home = '/home';
   static const String login = '/login';
   static const String register = '/register';
@@ -22,8 +23,12 @@ class AppRoute {
 
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
+    initialLocation: AppRoute.splash,
     // Redirect function สำหรับตรวจสอบ authentication
     redirect: (BuildContext context, GoRouterState state) async {
+      final isSplashPage = state.uri.path == AppRoute.splash;
+      if(isSplashPage) return null;
+
       final isLoginPage = state.uri.path == AppRoute.login;
       final isRegisterPage = state.uri.path == AppRoute.register;
 
@@ -37,19 +42,15 @@ class AppRoute {
         return AppRoute.login;
       }
 
-      if (state.uri.path == AppRoute.currentRoute) {
-        return AppRoute.home;
-      }
-
       return null;
     },
 
     routes: [
       GoRoute(
-        name: 'current',
-        path: currentRoute,
+        name: 'splash',
+        path: splash,
         pageBuilder: (context, state) {
-          return MaterialPage(child: Login());
+          return MaterialPage(child: SplashSceen());
         },
       ),
 
@@ -68,14 +69,7 @@ class AppRoute {
           return MaterialPage(child: HomePage());
         },
       ),
-
-      // GoRoute(
-      //   name: RouteName.login,
-      //   path: '/login',
-      //   pageBuilder: (context, state) {
-      //     return MaterialPage(child: Login());
-      //   },
-      // ),
+      
       GoRoute(
         name: register,
         path: register,

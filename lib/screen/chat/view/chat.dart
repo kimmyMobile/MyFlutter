@@ -1,13 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_app_test1/config/routes/app_route.dart';
-import 'package:flutter_app_test1/controller/socket_controller.dart';
-import 'package:flutter_app_test1/controller/user_controller.dart';
+import 'package:flutter_app_test1/controller/chat_controller.dart';
+import 'package:flutter_app_test1/controller/conversation_controller.dart';
+import 'package:flutter_app_test1/controller/friend_controller.dart';
+import 'package:flutter_app_test1/controller/user_controller.dart'; 
 import 'package:flutter_app_test1/helpers/local_storage_service.dart';
 import 'package:flutter_app_test1/model/message_model.dart';
 import 'package:flutter_app_test1/screen/widgets/profile_circle.dart';
-import 'package:flutter_app_test1/service/dudee_service.dart';
-import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get.dart'; // GetX
 import 'package:go_router/go_router.dart';
 
 class ChatPage extends StatefulWidget {
@@ -19,44 +20,36 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final dudee = DudeeService();
-  final TextEditingController _messageController = TextEditingController();
-
-  List<Item> _messages = [];
+  late final ChatController chatController;
+  late final UserController userController;
+  late final FriendController friendController;
+  late final ScrollController _scrollController;
   Map<String, dynamic> _currentUserInfo = {};
-  final ScrollController _scrollController = ScrollController();
-
-  SocketController skController = Get.put(SocketController());
-  UserController userController = Get.put(UserController());
+  Timer? _timer;
+  void startTimer() {
+    _timer = Timer.periodic(Duration(seconds: 10),
+    (Timer t) {
+      chatController.fetchDataForChat(widget.conversationId);
+    }
+    );
+  }
+  void stopTimer() {
+    _timer?.cancel();
+  }
 
   @override
   void initState() {
     super.initState();
+    chatController = Get.put(ChatController());
+    userController = Get.find<UserController>();
+    friendController = Get.find<FriendController>();
+    _scrollController = ScrollController();
+    chatController.setScrollController(_scrollController);
+    startTimer();
+
     _loadCurrentUserInfo().then((_) {
-      fetchData();
+      chatController.fetchDataForChat(widget.conversationId);
     });
-  }
-
-
-  Future<void> fetchData() async {
-    try {
-      await dudee.chatRead(int.parse(widget.conversationId));
-      final messageResponse = await dudee.getMessages(int.parse(widget.conversationId));
-      if (messageResponse.data != null && messageResponse.data!.items != null) {
-        final items = messageResponse.data!.items!;
-        items.sort((a, b) {
-          return (a.createdAt ?? DateTime(0)).compareTo(b.createdAt ?? DateTime(0));
-        });
-        _messages = items;
-        _scrollToBottom();
-      }
-    } catch (e) {
-      print('Failed to fetch messages: $e');
-    } finally {
-      if (mounted) {
-        setState(() {});
-      }
-    }
   }
 
   Future<void> _loadCurrentUserInfo() async {
@@ -65,53 +58,63 @@ class _ChatPageState extends State<ChatPage> {
       _currentUserInfo = userInfo;
     });
   }
-
-  Future<void> _sendMessage () async {
-    if (_messageController.text.trim().isEmpty) return;
-    final response = await DudeeService().sendMessage(
-      int.parse(widget.conversationId),
-      _messageController.text.trim(),
-    );
-    if (response.statusCode == 201) {
-      _messageController.clear();
-      await fetchData();
-    }
-  }
-
+  
   @override
   void dispose() {
-    _messageController.dispose();
     _scrollController.dispose();
+    stopTimer();
     super.dispose();
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        elevation: 1,
+        scrolledUnderElevation: 1,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            GoRouter.of(context).pushNamed(AppRoute.home);
+          onPressed: () async {
+            GoRouter.of(context).pop({'isPop':true});
+            ConversationController conversationController = Get.isRegistered<ConversationController>() ? Get.find<ConversationController>() : Get.put(ConversationController());
+            await conversationController.fetchConversations();
           },
         ),
+        title: Obx(() {
+          final participant = chatController.otherParticipant.value;
+          if (participant == null) {
+            return const Text('Chat');
+          }
+          final isOnline =
+              friendController.onlineStatus[participant.id] ?? false;
+
+          return Row(
+            children: [
+              ProfileCircle(imageUrl: participant.profileUrl, size: 40),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(participant.name ?? 'User',
+                      style: const TextStyle(fontSize: 16)),
+                  if (isOnline)
+                    const Text(
+                      'Online',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold),
+                    ),
+                ],
+              ),
+            ],
+          );
+        }),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(child: _buildMessageList()),
+            Expanded(child: Obx(() => _buildMessageList(chatController.messages))), 
             _buildUserInput(),
           ],
         ),
@@ -119,17 +122,17 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Widget _buildMessageList() {
-    if (_messages.isEmpty) {
+  Widget _buildMessageList(List<Item> messages) {
+    if (messages.isEmpty) {
       return const Center(child: Text("No messages yet."));
     }
     return ListView.builder(
-      controller: _scrollController,
+      controller: _scrollController, 
       padding: const EdgeInsets.all(8.0),
-      itemCount: _messages.length,
+      itemCount: messages.length,
       itemBuilder: (context, index) {
-        final messageItem = _messages[index];
-        final bool isMe = messageItem.sender?.id == _currentUserInfo['userId'];
+        final messageItem = messages[index];
+        final bool isMe = messageItem.sender?.id == _currentUserInfo['userId']; 
         return _buildMessageBubble(messageItem, isMe);
       },
     );
@@ -137,7 +140,12 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildMessageBubble(Item message, bool isMe) {
     final participant = message.sender;
-    final bool readed = message.isReadByMe ?? false;
+    
+    // final readed = message.readBy?.firstWhere(
+    //   (reader) => reader.userId == _currentUserInfo['userId'] ,
+    // );
+    final bool readedStatus = (message.readBy?.length ?? 0) > 1;
+
     if (participant == null) {
       return const SizedBox.shrink();
     }
@@ -154,14 +162,17 @@ class _ChatPageState extends State<ChatPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (!isMe)
-            Text(participant.name ?? 'Unknown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          if (!isMe) SizedBox(height: 4),
+            Text(participant.name ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          if (!isMe) const SizedBox(height: 4),
             Text(message.content ?? ''),
-          if (isMe && readed)
-            Text('✓ อ่านแล้ว', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          if (isMe && readedStatus)
+            const Text('✓ อ่านแล้ว', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
     );
+
+    // ตรวจสอบเพื่อดึง profileUrl ของตัวเอง
+    final myProfileUrl = userController.userProfile.value?.data?.profileUrl; 
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -175,38 +186,43 @@ class _ChatPageState extends State<ChatPage> {
           Flexible(child: messageBubble),
           if (isMe) const SizedBox(width: 8),
           if (isMe)
-            ProfileCircle(imageUrl: userController.userProfile.value?.data?.profileUrl, size: 30),
+            ProfileCircle(imageUrl: myProfileUrl, size: 30),
         ]
         ),
       );
   }
 
   Widget _buildUserInput() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _messageController,
-            decoration: InputDecoration(
-              hintText: 'Type a message...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(color: Colors.grey),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              // ใช้ Controller จาก ChatController
+              controller: chatController.messageController, 
+              decoration: InputDecoration(
+                hintText: 'Type a message...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              maxLines: 5,
+              minLines: 1,
             ),
-            maxLines: 5,
-            minLines: 1,
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.send),
-          onPressed: _sendMessage,
-        ),
-      ],
+          IconButton(
+            icon: const Icon(Icons.send),
+            // เรียกใช้ sendMessage จาก Controller
+            onPressed: () => chatController.sendMessage(widget.conversationId), 
+          ),
+        ],
+      ),
     );
   }
 }

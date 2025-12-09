@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app_test1/model/user_profile.dart';
+import 'package:flutter_app_test1/controller/user_controller.dart';
+import 'package:flutter_app_test1/screen/widgets/profile_circle.dart';
 import 'package:flutter_app_test1/service/auth.dart';
-import 'package:flutter_app_test1/service/dudee_service.dart';
+import 'package:get/get.dart';
 
 // ignore: must_be_immutable
 class Profile extends StatefulWidget {
-
   Profile({super.key});
 
   @override
@@ -13,25 +13,16 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  UserProfile? userProfile;
+  final UserController userController = Get.find<UserController>();
 
   @override
   void initState() {
     super.initState();
-    fetchUserProfile();
   }
 
   @override
   void dispose() {
     super.dispose();
-  }
-
-  Future<void> fetchUserProfile() async {
-    await Future.delayed(const Duration(seconds: 2));
-    userProfile = await DudeeService().getUserProfile();
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   Future<void> logout() async {
@@ -41,25 +32,67 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
-      body: Column(
-        children: [
-          Container(
-            child: Center(
-              child: Text(
-                'Profile',
-                style: const TextStyle(fontSize: 24),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        centerTitle: true,
+      ),
+      body: Obx(
+        () {
+          final user = userController.userProfile.value?.data;
+          if (user == null) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text("Loading profile..."),
+                ],
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Welcome ${userProfile?.data?.name}',
-            style: const TextStyle(fontSize: 18),
-          ),
-          const SizedBox(width: 16),
-          ElevatedButton(onPressed: logout , child: Text("Log out"))
-        ],
+            );
+          }
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              Column(
+                children: [
+                  ProfileCircle(
+                    imageUrl: user.profileUrl,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    user.name ?? 'No Name',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user.email ?? 'No Email',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit Profile'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  // TODO: Navigate to edit profile page
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.logout, color: Colors.red.shade700),
+                title: Text('Log Out', style: TextStyle(color: Colors.red.shade700)),
+                onTap: logout,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

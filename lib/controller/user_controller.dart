@@ -32,7 +32,8 @@ class UserController extends GetxController {
     }
   }
 
-  void clearMemberInfo() {
+  Future<void> clearMemberInfo() async {
     setIsLogIn(logIn: false);
+    await LocalStorageService.clearAll();
   }
 }

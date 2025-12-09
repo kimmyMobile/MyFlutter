@@ -70,4 +70,11 @@ class ConversationController extends GetxController {
       update();
     }
   }
+
+  Future<void> clearConversations() async {
+    conversations.clear();
+    meta.value = null;
+    update();
+  }
+  
 }
