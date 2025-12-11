@@ -1,0 +1,5 @@
+{
+    "ENVIRONMENT": "deverlopment",
+    "API_KEY": "https://mobile-api.kimistrydev.com/api/v1",
+    "SOCKET_URL": "https://mobile-api.kimistrydev.com/ws/chat"
+}
